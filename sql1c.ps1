@@ -78,4 +78,3 @@ function Send-Log {
 
 Kill-1C
 Backup-1C
-Send-Log
