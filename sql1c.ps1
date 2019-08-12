@@ -2,6 +2,11 @@
 #PowerShell 5
 
 #Initial variables
+#Bugfix for windows 7.
+if ([System.Environment]::OSVersion.Version.Major -eq 6) {
+    Set-Location -Path $PSScriptRoot
+}
+
 . .\currvar.ps1
 $CurDate = Get-Date -Format yyyy-MM-dd-HH-mm
 $LogPath = Join-Path -Path $rootPath -ChildPath "Logs" | Join-Path -ChildPath "$CurDate.log"
