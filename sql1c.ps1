@@ -2,7 +2,7 @@
 #PowerShell 5
 
 #Initial variables
-. E:\Backup1C\currvar.ps1
+. .\currvar.ps1
 $CurDate = Get-Date -Format yyyy-MM-dd-HH-mm
 $LogPath = Join-Path -Path $rootPath -ChildPath "Logs" | Join-Path -ChildPath "$CurDate.log"
 
