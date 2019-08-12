@@ -41,3 +41,6 @@
 
 #Timeout for 1c kill
 [byte] $TimeoutKill = 15;
+
+#Minimal archive size for test in bytes
+[int] $ArchiveSize = 1000;

@@ -32,12 +32,12 @@ function Backup-1C {
         & "c:\Program Files\7-Zip\7z.exe" a -t7z -p"$СurPass" $FullBackUpPath".7z" $FullBackUpPath".bak" -sdel
 
         #Test Backup
-        & "c:\Program Files\7-Zip\7z.exe" t $FullBackUpPath".7z" *.bak -r -p"$СurPass"# | Select-String -Pattern 'Everything is Ok'
+        & "c:\Program Files\7-Zip\7z.exe" t $FullBackUpPath".7z" *.bak -r -p"$СurPass"
 
         $BackupSize = (Get-Item $FullBackUpPath".7z").length
         Write-Host "File Size: " $BackupSize " Bytes"
 
-        if ($BackupSize -lt 1000) {
+        if ($BackupSize -lt $ArchiveSize) {
             $SendEmail = $True
         }
 
