@@ -5,7 +5,6 @@
 . E:\Backup1C\currvar.ps1
 $CurDate = Get-Date -Format yyyy-MM-dd-HH-mm
 $LogPath = Join-Path -Path $rootPath -ChildPath "Logs" | Join-Path -ChildPath "$CurDate.log"
-$SendEmail = $False
 
 Import-Module sqlps -DisableNameChecking
 
@@ -38,7 +37,7 @@ function Backup-1C {
         Write-Host "File Size: " $BackupSize " Bytes"
 
         if ($BackupSize -lt $ArchiveSize) {
-            $SendEmail = $True
+            Send-Log
         }
 
         #Remove old backup
@@ -54,29 +53,27 @@ function Backup-1C {
 }
 #Send E-mail log
 function Send-Log {
-    if ($SendEmail) {
-        $Subject = "Ошибки sql backup 1c"
-        $text = ""
-        foreach ($line in (Get-Content $LogPath)) {
-            $text += $line
-            $text += "<br />"
-            }
-        $Body = $text
-        $Cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $EmailFrom, (Get-Content $PasswordEMail | ConvertTo-SecureString)
-        $SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, 587)
-        $SMTPClient.EnableSsl = $true
-        $SMTPClient.Credentials = New-Object System.Net.NetworkCredential($EmailFrom, $Cred.Password);
-        $emailMessage = New-Object System.Net.Mail.MailMessage
-        $emailMessage.From = New-Object System.Net.Mail.MailAddress($EmailFrom)
-        $emailMessage.Subject = $Subject
-        $emailMessage.IsBodyHtml = $true
-        $emailMessage.Body = $Body
-        #$emailMessage.To.Add($EmailTo)
-        foreach($EmailTo in $EmailToList) {
-            $emailMessage.To.Add($EmailTo)
+    $Subject = "backup 1c"
+    $text = ""
+    foreach ($line in (Get-Content $LogPath)) {
+        $text += $line
+        $text += "<br />"
         }
-        $SMTPClient.Send($emailMessage)
+    $Body = $text
+    $Cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $EmailFrom, (Get-Content $PasswordEMail | ConvertTo-SecureString)
+    $SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, 587)
+    $SMTPClient.EnableSsl = $true
+    $SMTPClient.Credentials = New-Object System.Net.NetworkCredential($EmailFrom, $Cred.Password);
+    $emailMessage = New-Object System.Net.Mail.MailMessage
+    $emailMessage.From = New-Object System.Net.Mail.MailAddress($EmailFrom)
+    $emailMessage.Subject = $Subject
+    $emailMessage.IsBodyHtml = $true
+    $emailMessage.Body = $Body
+    #$emailMessage.To.Add($EmailTo)
+    foreach($EmailTo in $EmailToList) {
+        $emailMessage.To.Add($EmailTo)
     }
+    $SMTPClient.Send($emailMessage)
 }
 
 Kill-1C
