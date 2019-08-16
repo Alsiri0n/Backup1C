@@ -10,11 +10,12 @@ if ([System.Environment]::OSVersion.Version.Major -eq 6) {
 . .\currvar.ps1
 $CurDate = Get-Date -Format yyyy-MM-dd-HH-mm
 $LogPath = Join-Path -Path $rootPath -ChildPath "Logs" | Join-Path -ChildPath "$CurDate.log"
+$global:ErrorStatus = $False
 
 Import-Module sqlps -DisableNameChecking
 
 #Kill working instances
-function Kill-1C {
+function Stop-1C {
     C:\Windows\System32\taskkill.exe /F /IM 1cv7s.exe /T
     C:\Windows\System32\taskkill.exe /F /IM 1cv8s.exe /T
     Wait-Event -Timeout $TimeoutKill
@@ -26,23 +27,25 @@ function Backup-1C {
 
     For ($i = 0; $i -le($DB.Length-1); $i+=1) {
         $FullBackUpPath = Join-Path -Path $BackupPath -ChildPath $DB[$i] | Join-Path -ChildPath "$($DB[$i])_db_$($CurDate)"
-        $СurPass = $Passwd[$i]
+        $CurPass = $Passwd[$i]
 
         #Load SQL password from file
         $Cred = New-Object System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $PasswordSQL | ConvertTo-SecureString)
 
         #Backup SQL DB and archive
         Backup-SqlDatabase -ServerInstance $Server -Database $DB[$i] -BackupFile $FullBackUpPath".bak" -Credential $Cred
-        & "c:\Program Files\7-Zip\7z.exe" a -t7z -p"$СurPass" $FullBackUpPath".7z" $FullBackUpPath".bak" -sdel
+        & "c:\Program Files\7-Zip\7z.exe" a -t7z -p"$CurPass" $FullBackUpPath".7z" $FullBackUpPath".bak" -sdel
 
         #Test Backup
-        & "c:\Program Files\7-Zip\7z.exe" t $FullBackUpPath".7z" *.bak -r -p"$СurPass"
+        $OutputText = & "c:\Program Files\7-Zip\7z.exe" t $FullBackUpPath".7z" *.bak -r -p"$CurPass" | Out-String
+        $OutputText
+        $global:ErrorStatus = -not($outputText -match 'Everything is Ok')
 
         $BackupSize = (Get-Item $FullBackUpPath".7z").length
         Write-Host "File Size: " $BackupSize " Bytes"
 
         if ($BackupSize -lt $ArchiveSize) {
-            Send-Log
+            $global:ErrorStatus = $True
         }
 
         #Remove old backup
@@ -58,7 +61,7 @@ function Backup-1C {
 }
 #Send E-mail log
 function Send-Log {
-    $Subject = "backup 1c"
+    $Subject = "Backup 1c"
     $text = ""
     foreach ($line in (Get-Content $LogPath)) {
         $text += $line
@@ -81,5 +84,9 @@ function Send-Log {
     $SMTPClient.Send($emailMessage)
 }
 
-Kill-1C
+Stop-1C
 Backup-1C
+
+if ($global:ErrorStatus) {
+    Send-Log
+}
