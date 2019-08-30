@@ -50,11 +50,15 @@ function Backup-1C {
 
         #Remove old backup
         #Get-ChildItem -Path $BackupPath"\*" -include *.7z | ?{$_.creationtime -lt $(Get-Date).adddays($daysBackup*-1)} | Remove-Item -Force; 
-        Get-ChildItem -Path $BackupPath"$($DB[$i])\*" | ?{$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)} | Remove-Item -Force;
+        $ListBackupFiles = Get-ChildItem -Path $BackupPath"$($DB[$i])\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)};
+        $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
+        $ListBackupFiles | Remove-Item -Force;
     }
 
     #Remove old logs
-    Get-ChildItem -Path $RootPath\Logs"\*" -include *.log | ?{$_.creationtime -lt $(Get-Date).adddays($DaysLogs*-1)} | Remove-Item -Force;
+    $ListLogFiles = Get-ChildItem -Path $RootPath\Logs"\*" -include *.log | ?{$_.creationtime -lt $(Get-Date).adddays($DaysLogs*-1)};
+    $ListLogFiles | Select-Object Name, Creationtime, Length | Out-Host;
+    $ListLogFiles | Remove-Item -Force;
 
     #End logging
     Stop-Transcript
