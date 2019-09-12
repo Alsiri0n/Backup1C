@@ -1,12 +1,12 @@
 #Backup MSSQL database with help powershell and archive backup with help 7-zip. Autoremove old backup. Logging all events.
 #PowerShell 5
 
-#Initial variables
 #Bugfix for windows 7.
 if ([System.Environment]::OSVersion.Version.Major -eq 6) {
     Set-Location -Path $PSScriptRoot
 }
 
+#Initial variables
 . .\currvar.ps1
 $CurDate = Get-Date -Format yyyy-MM-dd-HH-mm
 $LogPath = Join-Path -Path $rootPath -ChildPath "Logs" | Join-Path -ChildPath "$CurDate.log"
@@ -49,14 +49,14 @@ function Backup-1C {
         }
 
         #Remove old backup
-        #Get-ChildItem -Path $BackupPath"\*" -include *.7z | ?{$_.creationtime -lt $(Get-Date).adddays($daysBackup*-1)} | Remove-Item -Force; 
+        #Get-ChildItem -Path $BackupPath"\*" -include *.7z | Where-Object {$_.creationtime -lt $(Get-Date).adddays($daysBackup*-1)} | Remove-Item -Force; 
         $ListBackupFiles = Get-ChildItem -Path $BackupPath"$($DB[$i])\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)};
         $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
         $ListBackupFiles | Remove-Item -Force;
     }
 
     #Remove old logs
-    $ListLogFiles = Get-ChildItem -Path $RootPath\Logs"\*" -include *.log | ?{$_.creationtime -lt $(Get-Date).adddays($DaysLogs*-1)};
+    $ListLogFiles = Get-ChildItem -Path $RootPath\Logs"\*" -include *.log | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysLogs*-1)};
     $ListLogFiles | Select-Object Name, Creationtime, Length | Out-Host;
     $ListLogFiles | Remove-Item -Force;
 
