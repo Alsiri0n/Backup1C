@@ -3,6 +3,9 @@
 #Paths
 [String] $RootPath = 'E:\Backup1C'
 [String] $BackupPath = 'E:\Backup1C\Backup\'
+#Обязательно добавить логин и пароль для доступа к удаленному хранилищу для пользователя от которого запускается задача. Если оставить пустым
+#дополнительное сохранение не будет работать
+[String] $BackupRemotePath = '\\192.168.1.1\BackupFromSQL\'
 
 #Генерация пароля
 #"My5tr0ngPa55w0rd" | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString | Out-File "E:\Backup1C\password_"

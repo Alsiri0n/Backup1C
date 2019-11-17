@@ -25,6 +25,10 @@ function Backup-1C {
     #Start logging
     Start-Transcript -Path $LogPath
 
+    if ($BackupRemotePath[0].Length -gt 1 ) {
+        New-PSDrive -Name "B" -Root $BackupRemotePath -PSProvider "FileSystem"
+    }
+
     For ($i = 0; $i -le($DB.Length-1); $i+=1) {
         $FullBackUpPath = Join-Path -Path $BackupPath -ChildPath $DB[$i] | Join-Path -ChildPath "$($DB[$i])_db_$($CurDate)"
         $CurPass = $Passwd[$i]
@@ -53,6 +57,11 @@ function Backup-1C {
         $ListBackupFiles = Get-ChildItem -Path $BackupPath"$($DB[$i])\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)};
         $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
         $ListBackupFiles | Remove-Item -Force;
+
+        #Copy to remote Server
+        if ($BackupRemotePath[0].Length -gt 1 ) {
+            Copy-Item  -Path $FullBackUpPath".7z" -Destination "B:\$($DB[$i])\$($DB[$i])_db_$($CurDate).7z"
+        }
     }
 
     #Remove old logs
