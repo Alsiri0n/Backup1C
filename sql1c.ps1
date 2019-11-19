@@ -25,8 +25,9 @@ function Backup-1C {
     #Start logging
     Start-Transcript -Path $LogPath
 
-    if ($BackupRemotePath[0].Length -gt 1 ) {
-        New-PSDrive -Name "B" -Root $BackupRemotePath -PSProvider "FileSystem"
+    #Add temp disk to remote storage
+    if ($BackupRemotePath.Length -gt 1 ) {
+        New-PSDrive -Name "B" -Root $BackupRemotePath -PSProvider FileSystem
     }
 
     For ($i = 0; $i -le($DB.Length-1); $i+=1) {
@@ -58,9 +59,9 @@ function Backup-1C {
         $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
         $ListBackupFiles | Remove-Item -Force;
 
-        #Copy to remote Server
-        if ($BackupRemotePath[0].Length -gt 1 ) {
-            Copy-Item  -Path $FullBackUpPath".7z" -Destination "B:\$($DB[$i])\$($DB[$i])_db_$($CurDate).7z"
+        #Copy to remote storage
+        if ($BackupRemotePath.Length -gt 1 ) {
+            Copy-Item -Path $FullBackUpPath".7z" -Destination "B:\$($DB[$i])\$($DB[$i])_db_$($CurDate).7z"
         }
     }
 
