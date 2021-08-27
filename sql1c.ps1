@@ -77,25 +77,32 @@ function Backup-1C {
 function Send-Log {
     $Subject = "Backup 1c"
     $text = ""
-    foreach ($line in (Get-Content $LogPath)) {
-        $text += $line
-        $text += "<br />"
-        }
-    $Body = $text
-    $Cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $EmailFrom, (Get-Content $PasswordEMail | ConvertTo-SecureString)
-    $SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, 587)
-    $SMTPClient.EnableSsl = $true
-    $SMTPClient.Credentials = New-Object System.Net.NetworkCredential($EmailFrom, $Cred.Password);
-    $emailMessage = New-Object System.Net.Mail.MailMessage
-    $emailMessage.From = New-Object System.Net.Mail.MailAddress($EmailFrom)
-    $emailMessage.Subject = $Subject
-    $emailMessage.IsBodyHtml = $true
-    $emailMessage.Body = $Body
-    #$emailMessage.To.Add($EmailTo)
-    foreach($EmailTo in $EmailToList) {
-        $emailMessage.To.Add($EmailTo)
+    try {
+        foreach ($line in (Get-Content $LogPath -ErrorAction Stop)) {
+            $text += $line
+            $text += "<br />"
+            }
     }
-    $SMTPClient.Send($emailMessage)
+    catch  [System.Management.Automation.ItemNotFoundException] {
+        $text += "Log File not found<br />"
+    }
+    finally {
+        $Body = $text
+        $Cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $EmailFrom, (Get-Content $PasswordEMail | ConvertTo-SecureString)
+        $SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, 587)
+        $SMTPClient.EnableSsl = $true
+        $SMTPClient.Credentials = New-Object System.Net.NetworkCredential($EmailFrom, $Cred.Password);
+        $emailMessage = New-Object System.Net.Mail.MailMessage
+        $emailMessage.From = New-Object System.Net.Mail.MailAddress($EmailFrom)
+        $emailMessage.Subject = $Subject
+        $emailMessage.IsBodyHtml = $true
+        $emailMessage.Body = $Body
+        #$emailMessage.To.Add($EmailTo)
+        foreach($EmailTo in $EmailToList) {
+            $emailMessage.To.Add($EmailTo)
+        }
+        $SMTPClient.Send($emailMessage)
+    }
 }
 
 Stop-1C
