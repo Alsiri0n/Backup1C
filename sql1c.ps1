@@ -53,9 +53,17 @@ function Backup-1C {
             $global:ErrorStatus = $True
         }
 
+        #CreateMonthlyBackup
+        if ([datetime]::ParseExact($CurDate, 'yyyy-MM-dd-HH-mm', $mull).Day -eq 6) {
+            $DestPath = Join-Path -Path $BackupPath -ChildPath $DB[$i] | Join-Path -ChildPath "old\$($DB[$i])_db_$($CurDate).7z"
+            Copy-Item -Path $FullBackUpPath".7z" -Destination $DestPath
+        }
+
         #Remove old backup
         #Get-ChildItem -Path $BackupPath"\*" -include *.7z | Where-Object {$_.creationtime -lt $(Get-Date).adddays($daysBackup*-1)} | Remove-Item -Force; 
         $ListBackupFiles = Get-ChildItem -Path $BackupPath"$($DB[$i])\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)};
+        #Remove old backups older than 1 year
+        $ListBackupFiles += Get-ChildItem -Path $BackupPath"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)};
         $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
         $ListBackupFiles | Remove-Item -Force;
 
@@ -75,7 +83,12 @@ function Backup-1C {
 }
 #Send E-mail log
 function Send-Log {
-    $Subject = "Backup 1c"
+    if ($global:ErrorStatus) {
+        $Subject = "WARNING Backup 1c"
+    }
+    else {
+        $Subject = "Backup 1c"
+    }
     $text = ""
     try {
         foreach ($line in (Get-Content $LogPath -ErrorAction Stop)) {
@@ -107,7 +120,4 @@ function Send-Log {
 
 Stop-1C
 Backup-1C
-
-if ($global:ErrorStatus) {
-    Send-Log
-}
+Send-Log
