@@ -56,6 +56,7 @@ function Backup-1C {
         #CreateMonthlyBackup
         if ([datetime]::ParseExact($CurDate, 'yyyy-MM-dd-HH-mm', $mull).Day -eq 6) {
             $DestPath = Join-Path -Path $BackupPath -ChildPath $DB[$i] | Join-Path -ChildPath "old\$($DB[$i])_db_$($CurDate).7z"
+            New-Item -ItemType File -Path $DestPath -Force
             Copy-Item -Path $FullBackUpPath".7z" -Destination $DestPath
         }
 
