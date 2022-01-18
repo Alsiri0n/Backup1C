@@ -62,7 +62,7 @@ function Backup-1C {
 
         #Remove old backup
         #Get-ChildItem -Path $BackupPath"\*" -include *.7z | Where-Object {$_.creationtime -lt $(Get-Date).adddays($daysBackup*-1)} | Remove-Item -Force;
-        [array]$ListBackupFiles = @(Get-ChildItem -Path $BackupPath"$($DB[$i])\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)});
+        [array]$ListBackupFiles = @(Get-ChildItem -Path $BackupPath"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)});
         #Remove old backups older than 1 year
         $ListBackupFiles += @(Get-ChildItem -Path $BackupPath"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)});
         $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
