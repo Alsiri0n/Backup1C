@@ -1,5 +1,10 @@
 #Backup MSSQL database with help powershell and archive backup with help 7-zip. Autoremove old backup. Logging all events.
 #PowerShell 5
+Param (
+    [string] $debug,
+    [boolean] $help
+)
+
 
 #Bugfix for windows 7.
 if ([System.Environment]::OSVersion.Version.Major -eq 6) {
@@ -20,6 +25,26 @@ function Stop-1C {
     C:\Windows\System32\taskkill.exe /F /IM 1cv8s.exe /T
     Wait-Event -Timeout $TimeoutKill
 }
+
+function Remove-OldLogs($type) {
+    $ListLogFiles = Get-ChildItem -Path $RootPath\Logs"\*" -include *.log | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysLogs*-1)};
+    $ListLogFiles | Select-Object Name, Creationtime, Length | Out-Host;
+
+    if ($type -eq "full") {
+        Write-Host "Full Remove Logs"
+        $ListLogFiles | Remove-Item -Force;  
+    }
+    elseif ($type -eq "test") {
+        Write-Host "Only Test"
+    }
+
+    For ($i = 0; $i -le($DB.Length-1); $i+=1) {
+        [array]$ListBackupFiles = @(Get-ChildItem -Path $BackupPath"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)});
+        $ListBackupFiles += @(Get-ChildItem -Path $BackupPath"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)});
+        $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
+    }
+}
+
 #Backup and test archive
 function Backup-1C {
     #Start logging
@@ -75,13 +100,12 @@ function Backup-1C {
     }
 
     #Remove old logs
-    $ListLogFiles = Get-ChildItem -Path $RootPath\Logs"\*" -include *.log | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysLogs*-1)};
-    $ListLogFiles | Select-Object Name, Creationtime, Length | Out-Host;
-    $ListLogFiles | Remove-Item -Force;
+    Remove-OldLogs -type full
 
     #End logging
     Stop-Transcript
 }
+
 #Send E-mail log
 function Send-Log {
     if ($global:ErrorStatus) {
@@ -98,6 +122,7 @@ function Send-Log {
             }
     }
     catch  [System.Management.Automation.ItemNotFoundException] {
+        $Subject = "WARNING Backup 1c"
         $text += "Log File not found<br />"
     }
     finally {
@@ -119,6 +144,24 @@ function Send-Log {
     }
 }
 
-Stop-1C
-Backup-1C
-Send-Log
+
+
+if ($debug -eq "email") {
+    # Write-Host "email"
+    Send-Log
+}
+elseif ($debug -eq "remove") {
+    #(Get-Item "E:\Backup1C\Temp\Logs\2022-04-13-09-45.log").CreationTime=("08/03/2019 17:10:00")
+    #(Get-Item "E:\Backup1C\Temp\Logs\2022-04-13-09-45.log").LastWriteTime=("08/03/2019 17:10:00")
+    Write-Host "Test remove"
+    Remove-OldLogs -type test
+}
+elseif ($help) {
+    Write-host ".\sql1c.ps1 -debug email"
+    Write-host ".\sql1c.ps1 -debug remove"
+}
+else {
+    Stop-1C
+    Backup-1C
+    Send-Log
+}
