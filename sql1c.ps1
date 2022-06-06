@@ -35,13 +35,13 @@ function Remove-OldFiles($type) {
         $ListLogFiles | Remove-Item -Force;  
     }
     elseif ($type -eq "debug") {
-        Write-Host "Only Test without remove Log Files"
-    }
+        Write-Host "Only Test without remove Old Files"
 
-    For ($i = 0; $i -le($DB.Length-1); $i+=1) {
-        [array]$ListBackupFiles = @(Get-ChildItem -Path $BackupPath"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)});
-        $ListBackupFiles += @(Get-ChildItem -Path $BackupPath"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)});
-        $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
+        For ($i = 0; $i -le($DB.Length-1); $i+=1) {
+            [array]$ListBackupFiles = @(Get-ChildItem -Path $BackupPath"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)});
+            $ListBackupFiles += @(Get-ChildItem -Path $BackupPath"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)});
+            $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
+        }
     }
 }
 
@@ -60,7 +60,7 @@ function Backup-1C {
         $CurPass = $Passwd[$i]
 
         #Load SQL password from file
-        $Cred = New-Object System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $PasswordSQL | ConvertTo-SecureString)
+        $Cred = New-Object System.Management.Automation.PSCredential -ArgumentList $SQLUser, (Get-Content $PasswordSQL | ConvertTo-SecureString)
 
         #Backup SQL DB and archive
         Backup-SqlDatabase -ServerInstance $Server -Database $DB[$i] -BackupFile $FullBackUpPath".bak" -Credential $Cred

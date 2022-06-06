@@ -12,7 +12,7 @@
 #Задача должна запускаться от пользователя, который сгенерировал пароль. Иначе ошибка ConvertTo-SecureString : Ключ не может быть использован в указанном состоянии.
 
 #SQL user
-[String] $User = 'SQLUserName'
+[String] $SQLUser = 'SQLUserName'
 #SQL password file
 [String] $PasswordSQL = "$rootPath\password"
 #E-mail password file
@@ -39,6 +39,8 @@
 
 #Save days for backups
 [byte] $DaysBackup = 30;
+#Save days for remote backups
+[byte] $DaysRemoteBackup = 30;
 #Save days for logs
 [byte] $DaysLogs = 30;
 
