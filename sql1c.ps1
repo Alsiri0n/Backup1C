@@ -26,7 +26,7 @@ function Stop-1C {
     Wait-Event -Timeout $TimeoutKill
 }
 
-function Remove-OldLogs($type) {
+function Remove-OldFiles($type) {
     $ListLogFiles = Get-ChildItem -Path $RootPath\Logs"\*" -include *.log | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysLogs*-1)};
     $ListLogFiles | Select-Object Name, Creationtime, Length | Out-Host;
 
@@ -34,8 +34,8 @@ function Remove-OldLogs($type) {
         Write-Host "Full Remove Logs"
         $ListLogFiles | Remove-Item -Force;  
     }
-    elseif ($type -eq "test") {
-        Write-Host "Only Test"
+    elseif ($type -eq "debug") {
+        Write-Host "Only Test without remove Log Files"
     }
 
     For ($i = 0; $i -le($DB.Length-1); $i+=1) {
@@ -80,8 +80,17 @@ function Backup-1C {
 
         #CreateMonthlyBackup
         if ([datetime]::ParseExact($CurDate, 'yyyy-MM-dd-HH-mm', $mull).Day -eq 6) {
-            $DestPath = Join-Path -Path $BackupPath -ChildPath $DB[$i] | Join-Path -ChildPath "old\$($DB[$i])_db_$($CurDate).7z"
-            New-Item -ItemType File -Path $DestPath -Force
+            if ($BackupRemotePath.Length -gt 1 ) {
+                $DestPath = Join-Path -Path "B:\" -ChildPath $DB[$i] | Join-Path -ChildPath "old\$($DB[$i])_db_$($CurDate).7z"
+            } else {
+                $DestPath = Join-Path -Path $BackupPath -ChildPath $DB[$i] | Join-Path -ChildPath "old\$($DB[$i])_db_$($CurDate).7z"
+            }
+
+            $DestDir = Split-Path -Path $DestPath
+            if (Test-Path -Path $DestDir) {
+                New-Item -Path $DestDir -ItemType "directory" -Force
+            }
+            New-Item -Path $DestPath -ItemType "file"  -Force
             Copy-Item -Path $FullBackUpPath".7z" -Destination $DestPath
         }
 
@@ -100,7 +109,7 @@ function Backup-1C {
     }
 
     #Remove old logs
-    Remove-OldLogs -type full
+    Remove-OldFiles -type full
 
     #End logging
     Stop-Transcript
@@ -150,15 +159,15 @@ if ($debug -eq "email") {
     # Write-Host "email"
     Send-Log
 }
-elseif ($debug -eq "remove") {
+elseif ($debug -eq "removeold") {
     #(Get-Item "E:\Backup1C\Temp\Logs\2022-04-13-09-45.log").CreationTime=("08/03/2019 17:10:00")
     #(Get-Item "E:\Backup1C\Temp\Logs\2022-04-13-09-45.log").LastWriteTime=("08/03/2019 17:10:00")
     Write-Host "Test remove"
-    Remove-OldLogs -type test
+    Remove-OldFiles -type debug
 }
 elseif ($help) {
     Write-host ".\sql1c.ps1 -debug email"
-    Write-host ".\sql1c.ps1 -debug remove"
+    Write-host ".\sql1c.ps1 -debug removeold"
 }
 else {
     Stop-1C
