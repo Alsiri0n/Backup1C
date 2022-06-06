@@ -19,6 +19,17 @@ $global:ErrorStatus = $False
 
 Import-Module sqlps -DisableNameChecking
 
+#Get List Old Files
+function Get-ListFiles($path, [byte] $days) {
+    Write-Host "path = " $path
+    For ($i = 0; $i -le($DB.Length-1); $i+=1) {
+                [array]$ListFiles = @(Get-ChildItem -Path $path"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($days*-1)});
+                $ListFiles += @(Get-ChildItem -Path $path"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)});
+                $ListFiles | Select-Object Name, Creationtime, Length | Out-Host;
+            }
+    return $ListFiles
+}
+
 #Kill working instances
 function Stop-1C {
     C:\Windows\System32\taskkill.exe /F /IM 1cv7s.exe /T
@@ -35,13 +46,16 @@ function Remove-OldFiles($type) {
         $ListLogFiles | Remove-Item -Force;  
     }
     elseif ($type -eq "debug") {
-        Write-Host "Only Test without remove Old Files"
+        Write-Host "Only Test without remove Log Files"
 
-        For ($i = 0; $i -le($DB.Length-1); $i+=1) {
-            [array]$ListBackupFiles = @(Get-ChildItem -Path $BackupPath"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)});
-            $ListBackupFiles += @(Get-ChildItem -Path $BackupPath"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)});
-            $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
+        if ($BackupRemotePath.Length -gt 1 ) {
+            #$ListFilesRemote = Get-ListFiles -path $BackupRemotePath -days $DaysRemoteBackup
+            #ListFileRemote  Remove-Item -Force;
+            Get-ListFiles -path $BackupRemotePath -days $DaysRemoteBackup
         }
+        #$ListFiles = Get-ListFiles -path $BackupPath -days $DaysBackup
+        #$ListFiles | Remove-Item -Force;
+        Get-ListFiles -path $BackupPath -days $DaysBackup
     }
 }
 
@@ -79,34 +93,36 @@ function Backup-1C {
         }
 
         #CreateMonthlyBackup
-        if ([datetime]::ParseExact($CurDate, 'yyyy-MM-dd-HH-mm', $mull).Day -eq 6) {
+        if ([datetime]::ParseExact($CurDate, 'yyyy-MM-dd-HH-mm', $mull).Day -eq 7) {
             if ($BackupRemotePath.Length -gt 1 ) {
                 $DestPath = Join-Path -Path "B:\" -ChildPath $DB[$i] | Join-Path -ChildPath "old\$($DB[$i])_db_$($CurDate).7z"
             } else {
                 $DestPath = Join-Path -Path $BackupPath -ChildPath $DB[$i] | Join-Path -ChildPath "old\$($DB[$i])_db_$($CurDate).7z"
             }
-
-            $DestDir = Split-Path -Path $DestPath
-            if (Test-Path -Path $DestDir) {
-                New-Item -Path $DestDir -ItemType "directory" -Force
-            }
-            New-Item -Path $DestPath -ItemType "file"  -Force
+            #Выделяем только полный путь без имени файла
+	        $DestDir = Split-Path -Path $DestPath
+            #Проверяем существование пути
+	        if (Test-Path -Path $DestDir) {
+                #Создаём папку old, если нет
+	    	    New-Item -Path $DestDir -ItemType "directory" -Force
+	        }
+            New-Item -Path $DestPath -ItemType "file" -Force
             Copy-Item -Path $FullBackUpPath".7z" -Destination $DestPath
         }
 
-        #Remove old backup
-        #Get-ChildItem -Path $BackupPath"\*" -include *.7z | Where-Object {$_.creationtime -lt $(Get-Date).adddays($daysBackup*-1)} | Remove-Item -Force;
-        [array]$ListBackupFiles = @(Get-ChildItem -Path $BackupPath"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($DaysBackup*-1)});
-        #Remove old backups older than 1 year
-        $ListBackupFiles += @(Get-ChildItem -Path $BackupPath"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)});
-        $ListBackupFiles | Select-Object Name, Creationtime, Length | Out-Host;
-        $ListBackupFiles | Remove-Item -Force;
-
         #Copy to remote storage
         if ($BackupRemotePath.Length -gt 1 ) {
-            Copy-Item -Path $FullBackUpPath".7z" -Destination "B:\$($DB[$i])\$($DB[$i])_db_$($CurDate).7z"
+            Copy-Item -Path $FullBackUpPath".7z" -Destination "B:\$($DB[$i])\"
         }
     }
+
+    #Remove old backup
+    if ($BackupRemotePath.Length -gt 1 ) {
+        $ListFilesRemote = Get-ListFiles -path $BackupRemotePath -days $DaysRemoteBackup
+        $ListFilesRemote | Remove-Item -Force;
+    }
+    $ListFiles = Get-ListFiles -path $BackupPath -days $DaysBackup
+    $ListFiles | Remove-Item -Force;
 
     #Remove old logs
     Remove-OldFiles -type full
@@ -152,7 +168,6 @@ function Send-Log {
         $SMTPClient.Send($emailMessage)
     }
 }
-
 
 
 if ($debug -eq "email") {
