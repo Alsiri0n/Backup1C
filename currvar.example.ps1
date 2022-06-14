@@ -29,7 +29,8 @@
 #SQL db name
 [String[]] $DB = @(
     'TestBD1',
-    'TestBD2')
+    'TestBD2'
+    )
 
 #7z archive password
 [String[]] $Passwd = @(

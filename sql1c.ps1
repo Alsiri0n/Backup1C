@@ -12,18 +12,20 @@ if ([System.Environment]::OSVersion.Version.Major -eq 6) {
 }
 
 #Initial variables
+$global:ErrorStatus = $False
 . .\currvar.ps1
 $CurDate = Get-Date -Format yyyy-MM-dd-HH-mm
 $LogPath = Join-Path -Path $rootPath -ChildPath "Logs" | Join-Path -ChildPath "$CurDate.log"
-$global:ErrorStatus = $False
+
 
 Import-Module sqlps -DisableNameChecking
 
 #Get List Old Files
 function Get-ListFiles($path, [byte] $days) {
     Write-Host "path = " $path
+    [array]$ListFiles = @()
     For ($i = 0; $i -le($DB.Length-1); $i+=1) {
-                [array]$ListFiles = @(Get-ChildItem -Path $path"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($days*-1)});
+                $ListFiles += @(Get-ChildItem -Path $path"$($DB[$i])\*" -Attributes !Directory | Where-Object {$_.creationtime -lt $(Get-Date).adddays($days*-1)});
                 $ListFiles += @(Get-ChildItem -Path $path"$($DB[$i])\old\*" | Where-Object {$_.creationtime -lt $(Get-Date).adddays(-367)});
                 $ListFiles | Select-Object Name, Creationtime, Length | Out-Host;
             }
@@ -33,6 +35,7 @@ function Get-ListFiles($path, [byte] $days) {
 #Kill working instances
 function Stop-1C {
     C:\Windows\System32\taskkill.exe /F /IM 1cv7s.exe /T
+    C:\Windows\System32\taskkill.exe /F /IM 1cv8c.exe /T
     C:\Windows\System32\taskkill.exe /F /IM 1cv8s.exe /T
     Wait-Event -Timeout $TimeoutKill
 }
@@ -100,12 +103,12 @@ function Backup-1C {
                 $DestPath = Join-Path -Path $BackupPath -ChildPath $DB[$i] | Join-Path -ChildPath "old\$($DB[$i])_db_$($CurDate).7z"
             }
             #Выделяем только полный путь без имени файла
-	        $DestDir = Split-Path -Path $DestPath
+            $DestDir = Split-Path -Path $DestPath
             #Проверяем существование пути
-	        if (Test-Path -Path $DestDir) {
+            if (Test-Path -Path $DestDir) {
                 #Создаём папку old, если нет
-	    	    New-Item -Path $DestDir -ItemType "directory" -Force
-	        }
+                New-Item -Path $DestDir -ItemType "directory" -Force
+            }
             New-Item -Path $DestPath -ItemType "file" -Force
             Copy-Item -Path $FullBackUpPath".7z" -Destination $DestPath
         }
